@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Swagger Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/javascripts/layui-v2.2.2/layui/css/layui.css">
+</head>
+<body>
+
+<div class="layui-layout layui-layout-admin">
+    <div class="layui-header">
+        <div class="layui-logo">京品高科 <i class="layui-icon" style="font-size: 18px;">&#xe857;</i> </div>
+    </div>
+
+    <div style="margin-left: 5%; margin-top: 2%; margin-right: 5%">
+        <span class="layui-breadcrumb">
+            <% pathDirObj.forEach(function(dir){ %>
+                <a style="font-size: 15px;" href="/<%=dir.path %>"><i class="layui-icon" style="font-size: 18px;">&#xe623;</i> <%=dir.name %> </a>
+            <% }) %>
+        </span>
+
+        <table class="layui-table" style="margin-top: 2%;">
+            <colgroup>
+                <col >
+                <col width="200">
+                <col width="200">
+                <col width="200">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>文件名称</th>
+                    <th>创建时间</th>
+                    <th>修改时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% fileLists.forEach(function(file){ %>
+                    <tr>
+                            <% if(file.type === 'dir') { %>
+                                <td>
+                                    <a href="/<%= requestP + '_' + file.name %>"> <%=file.name %> </a>
+                                </td>
+                                <td><%=file.atime%></td>
+                                <td><%=file.mtime%></td>
+                                <td>
+                                    <a class="layui-btn layui-btn-sm" onclick="del('/delFile/<%= requestP + "_" +file.name %>')">删除</a>
+                                </td>
+                            <% } %>
+
+                            <% if(file.type === 'file') { %>
+                                <td>
+                                   <%=file.name %>
+                                </td>
+                                <td><%=file.atime%></td>
+                                <td><%=file.mtime%></td>
+                                <td>
+                                    <a href="/swagger/ui?url=<%=config.host%>/upload<%=requestRP + '/' + file.name%>" target="_blank" class="layui-btn layui-btn-sm">查看</a>
+                                    <a href="/swagger/editor?url=<%=config.host%>/upload<%=requestRP + '/' +file.name%>" target="_blank" class="layui-btn layui-btn-sm">编辑</a>
+                                    <a class="layui-btn layui-btn-sm" onclick="del('/delFile/<%= requestP + "_" +file.name %>')">删除</a>
+                                </td>
+                            <% } %>
+                    </tr>
+                <% }) %>
+
+                <tr>
+                    <td colspan="4">
+
+                        <button type="button" class="layui-btn layui-btn-sm" id="mkdir" onclick="mkdirOpen('<%= requestP%>')">
+                            <i class="layui-icon">&#xe608;</i>新建文件夹
+                        </button>
+                        <button type="button" class="layui-btn layui-btn-sm" id="uploadBtn">
+                            <i class="layui-icon">&#xe67c;</i>上传文件
+                        </button>
+                        <button type="button" class="layui-btn layui-btn-sm" id="uploadActionBtn">
+                            <i class="layui-icon">&#xe67c;</i>确认上传
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+
+        </table>
+
+    </div>
+</div>
+
+<script src="/javascripts/layui-v2.2.2/layui/layui.js"></script>
+<script>
+    layui.use('element', function(){
+        var element = layui.element; //导航的hover效果、二级菜单等功能，需要依赖element模块
+        //监听导航点击
+//        element.on('nav(demo)', function(elem){
+//            //console.log(elem)
+//            layer.msg(elem.text());
+//        });
+    });
+
+    layui.use('layer', function(){
+    });
+
+    layui.use('upload', function(){
+        var upload = layui.upload;
+        //执行实例
+        var uploadInst = upload.render({
+            auto: false, //选择文件后不自动上传
+            accept:'file',//上传文件
+            elem: '#uploadBtn', //绑定元素
+            url: '/upload/?dir=<%=requestRP%>', //上传接口
+            bindAction: '#uploadActionBtn', //指向一个按钮触发上传
+            done: function(res, index, upload){
+                //上传完毕回调
+                if(res.success===true){
+                    layer.open({
+                        title: '文件',content: '上传成功',btn: '确认',
+                        yes:function(){
+                            history.go(0);
+                        }
+                    });
+                }else{
+                    history.go(0);
+                }
+            }
+            ,error: function(){
+                layer.open({
+                    title: '文件',content: '上传失败',btn: '确认',
+                    yes:function(){
+                        history.go(0);
+                    }
+                });
+            }
+        });
+    });
+
+
+    function del(filePath){
+        var $ = layui.jquery;
+        $.get(filePath, function(result){
+            if(null !== result && result.success === true){
+                layer.open({
+                    title: '文件',content: '删除成功',btn: '确认',
+                    yes:function(){
+                        history.go(0);
+                    }
+                });
+            }else{
+                layer.open({
+                    title: '文件',content: '删除失败',btn: '确认',
+                    yes:function(){
+                        history.go(0);
+                    }
+                });
+            }
+        });
+    }
+
+
+
+
+
+    function mkdirOpen(currentPath){
+        layer.prompt({
+            formType: 2,
+//            value: '初始值',
+            title: '请输入文件夹名称',
+            area: ['200px', '20px'] //自定义文本域宽高
+        }, function(value, index, elem){
+            var $ = layui.jquery;
+            $.get('/mkdir/'+currentPath+'_'+value, function(result){
+                if(null!==result && result.success===true){
+                    layer.open({
+                        title: '文件夹',content: '创建成功',btn: '确认',
+                        yes:function(){
+                            history.go(0);
+                        }
+                    });
+                }else{
+                    layer.open({
+                        title: '文件夹',content: '创建失败',btn: '确认',
+                        yes:function(){
+                            history.go(0);
+                        }
+                    });
+                }
+            });
+            layer.close(index);
+        });
+
+    }
+
+</script>
+
+
+</body>
+</html>

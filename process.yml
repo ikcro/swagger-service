@@ -1,0 +1,6 @@
+apps:
+  - script   : bin/www
+    watch  : true
+    instances: 4
+    exec_mode: cluster
+    name: swagger-service
